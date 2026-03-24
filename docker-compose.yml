@@ -53,8 +53,11 @@ services:
       - DEER_FLOW_HOME=/app/backend/.deer-flow
       - DEER_FLOW_HOST_BASE_DIR=/app/backend/.deer-flow
       - DEER_FLOW_SANDBOX_HOST=host.docker.internal
-    env_file:
-      - .env
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - JINA_API_KEY=${JINA_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -81,8 +84,11 @@ services:
       - DEER_FLOW_EXTENSIONS_CONFIG_PATH=/app/extensions_config.json
       - DEER_FLOW_SANDBOX_HOST=host.docker.internal
       - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
-    env_file:
-      - .env
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - JINA_API_KEY=${JINA_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
