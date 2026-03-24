@@ -39,7 +39,7 @@ services:
       context: .
       dockerfile: docker/backend/Dockerfile
     container_name: deer-flow-gateway
-    command: sh -c "cd /app/backend && uv run python3 /debug_gateway.py"
+    command: sh -c "/app/backend/.venv/bin/python3 /debug_gateway.py"
     volumes:
       # Vixy/Adam config overlays
       - ./config.yaml:/app/backend/config.yaml:ro
