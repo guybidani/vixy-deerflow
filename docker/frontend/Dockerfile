@@ -3,7 +3,7 @@
 ARG DEER_FLOW_REF=main
 ARG PNPM_STORE_PATH=/root/.local/share/pnpm/store
 
-FROM node:22-alpine
+FROM node:22-alpine AS prod
 ARG DEER_FLOW_REF
 ARG PNPM_STORE_PATH
 
