@@ -74,7 +74,7 @@ export function registerAdsTools(server: McpServer) {
 
       // Aggregate totals
       const totals = snapshots.reduce(
-        (acc, s) => ({
+        (acc: { spend: number; impressions: number; clicks: number; conversions: number; roas_sum: number }, s: any) => ({
           spend: acc.spend + (s.spend ?? 0),
           impressions: acc.impressions + (s.impressions ?? 0),
           clicks: acc.clicks + (s.clicks ?? 0),

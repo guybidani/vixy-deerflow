@@ -101,7 +101,7 @@ export function registerWorkspaceTools(server: McpServer) {
 
       // Aggregate metrics per campaign
       const metricsMap = recentMetrics.reduce(
-        (acc, m) => {
+        (acc: Record<string, { spend: number; impressions: number; clicks: number; conversions: number; roas_sum: number; count: number }>, m: any) => {
           if (!acc[m.adCampaignId]) {
             acc[m.adCampaignId] = {
               spend: 0,
@@ -123,7 +123,7 @@ export function registerWorkspaceTools(server: McpServer) {
         {} as Record<string, { spend: number; impressions: number; clicks: number; conversions: number; roas_sum: number; count: number }>
       );
 
-      const campaignsWithMetrics = adCampaigns.map((c) => {
+      const campaignsWithMetrics = adCampaigns.map((c: any) => {
         const m = metricsMap[c.id] ?? { spend: 0, impressions: 0, clicks: 0, conversions: 0, roas_sum: 0, count: 0 };
         const ctr = m.impressions > 0 ? ((m.clicks / m.impressions) * 100).toFixed(2) : "0";
         const cpa = m.conversions > 0 ? (m.spend / m.conversions).toFixed(2) : null;
