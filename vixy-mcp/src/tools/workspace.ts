@@ -18,7 +18,7 @@ export function registerWorkspaceTools(server: McpServer) {
           agentMaxBudgetChange: true,
           agentCanPauseCampaigns: true,
           agentCanCreateCampaigns: true,
-          agentRequireApprovalAll: true,
+          agentRequireApprovalForAll: true,
           adAccounts: {
             select: {
               id: true,
@@ -28,11 +28,11 @@ export function registerWorkspaceTools(server: McpServer) {
             },
             where: { isActive: true },
           },
-          profile: {
+          workspaceProfile: {
             select: {
               industry: true,
               targetAudience: true,
-              mainProducts: true,
+              products: true,
             },
           },
         },
@@ -87,9 +87,8 @@ export function registerWorkspaceTools(server: McpServer) {
             status: true,
             objective: true,
             dailyBudget: true,
-            lifetimeBudget: true,
-            platform: true,
-            externalId: true,
+            totalBudget: true,
+            platformId: true,
             adAccount: { select: { platform: true } },
           },
           take: 20,
@@ -97,21 +96,21 @@ export function registerWorkspaceTools(server: McpServer) {
 
         db.adMetricSnapshot.findMany({
           where: {
-            campaign: {
+            adCampaign: {
               adAccount: { workspaceId: workspace_id },
             },
-            date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+            snapshotDate: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           },
           select: {
-            campaignId: true,
-            date: true,
+            adCampaignId: true,
+            snapshotDate: true,
             spend: true,
             impressions: true,
             clicks: true,
             conversions: true,
-            revenue: true,
+            roas: true,
           },
-          orderBy: { date: "desc" },
+          orderBy: { snapshotDate: "desc" },
           take: 100,
         }),
       ]);
@@ -126,31 +125,33 @@ export function registerWorkspaceTools(server: McpServer) {
       // Aggregate metrics per campaign
       const metricsMap = recentMetrics.reduce(
         (acc, m) => {
-          if (!acc[m.campaignId]) {
-            acc[m.campaignId] = {
+          if (!acc[m.adCampaignId]) {
+            acc[m.adCampaignId] = {
               spend: 0,
               impressions: 0,
               clicks: 0,
               conversions: 0,
-              revenue: 0,
+              roas_sum: 0,
+              count: 0,
             };
           }
-          acc[m.campaignId].spend += m.spend ?? 0;
-          acc[m.campaignId].impressions += m.impressions ?? 0;
-          acc[m.campaignId].clicks += m.clicks ?? 0;
-          acc[m.campaignId].conversions += m.conversions ?? 0;
-          acc[m.campaignId].revenue += m.revenue ?? 0;
+          acc[m.adCampaignId].spend += m.spend ?? 0;
+          acc[m.adCampaignId].impressions += m.impressions ?? 0;
+          acc[m.adCampaignId].clicks += m.clicks ?? 0;
+          acc[m.adCampaignId].conversions += m.conversions ?? 0;
+          acc[m.adCampaignId].roas_sum += m.roas ?? 0;
+          acc[m.adCampaignId].count += 1;
           return acc;
         },
-        {} as Record<string, { spend: number; impressions: number; clicks: number; conversions: number; revenue: number }>
+        {} as Record<string, { spend: number; impressions: number; clicks: number; conversions: number; roas_sum: number; count: number }>
       );
 
       const campaignsWithMetrics = adCampaigns.map((c) => {
-        const m = metricsMap[c.id] ?? { spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0 };
+        const m = metricsMap[c.id] ?? { spend: 0, impressions: 0, clicks: 0, conversions: 0, roas_sum: 0, count: 0 };
         const ctr = m.impressions > 0 ? ((m.clicks / m.impressions) * 100).toFixed(2) : "0";
         const cpa = m.conversions > 0 ? (m.spend / m.conversions).toFixed(2) : null;
-        const roas = m.spend > 0 ? (m.revenue / m.spend).toFixed(2) : null;
-        return { ...c, metrics_7d: { ...m, ctr: `${ctr}%`, cpa, roas } };
+        const roas = m.count > 0 ? (m.roas_sum / m.count).toFixed(2) : null;
+        return { ...c, metrics_7d: { spend: m.spend, impressions: m.impressions, clicks: m.clicks, conversions: m.conversions, ctr: `${ctr}%`, cpa, roas } };
       });
 
       return {
@@ -162,14 +163,14 @@ export function registerWorkspaceTools(server: McpServer) {
                 workspace: {
                   id: workspace.id,
                   name: workspace.name,
-                  profile: workspace.profile,
+                  profile: workspace.workspaceProfile,
                   adAccounts: workspace.adAccounts,
                   agentPolicy: {
                     tier: workspace.agentTier,
                     maxBudgetChangePct: workspace.agentMaxBudgetChange,
                     canPauseCampaigns: workspace.agentCanPauseCampaigns,
                     canCreateCampaigns: workspace.agentCanCreateCampaigns,
-                    requireApprovalAll: workspace.agentRequireApprovalAll,
+                    requireApprovalAll: workspace.agentRequireApprovalForAll,
                   },
                 },
                 campaigns: campaignsWithMetrics,
@@ -190,7 +191,7 @@ export function registerWorkspaceTools(server: McpServer) {
     { workspace_id: z.string().describe("Workspace ID") },
     async ({ workspace_id }) => {
       const insights = await db.proactiveInsight.findMany({
-        where: { workspaceId: workspace_id, processed: false },
+        where: { workspaceId: workspace_id, isDismissed: false, isRead: false },
         orderBy: [{ severity: "desc" }, { createdAt: "desc" }],
         take: 20,
       });
@@ -209,7 +210,7 @@ export function registerWorkspaceTools(server: McpServer) {
     async ({ insight_id }) => {
       await db.proactiveInsight.update({
         where: { id: insight_id },
-        data: { processed: true, processedAt: new Date() },
+        data: { isDismissed: true },
       });
 
       return {

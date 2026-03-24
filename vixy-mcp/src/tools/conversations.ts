@@ -194,12 +194,15 @@ ${conversationSummaries.join("\n\n")}`;
       status: z.enum(["PENDING", "APPLIED", "DISMISSED", "ALL"]).default("PENDING"),
     },
     async ({ workspace_id, status }) => {
+      const ws = await db.workspace.findUnique({ where: { id: workspace_id }, select: { organizationId: true } });
+      if (!ws) return { content: [{ type: "text" as const, text: `Workspace ${workspace_id} not found` }], isError: true };
+
       const recommendations = await db.optimizationRecommendation.findMany({
         where: {
-          workspaceId: workspace_id,
+          organizationId: ws.organizationId,
           ...(status !== "ALL" ? { status } : {}),
         },
-        orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+        orderBy: [{ impact: "desc" }, { createdAt: "desc" }],
         take: 20,
       });
 

@@ -30,7 +30,7 @@ export function registerAdsTools(server: McpServer) {
             select: { id: true, name: true, status: true, dailyBudget: true },
           },
         },
-        orderBy: { updatedAt: "desc" },
+        orderBy: { createdAt: "desc" },
         take: 30,
       });
 
@@ -63,8 +63,8 @@ export function registerAdsTools(server: McpServer) {
           },
         }),
         db.adMetricSnapshot.findMany({
-          where: { campaignId: campaign_id, date: { gte: since } },
-          orderBy: { date: "asc" },
+          where: { adCampaignId: campaign_id, snapshotDate: { gte: since } },
+          orderBy: { snapshotDate: "asc" },
         }),
       ]);
 
@@ -82,14 +82,14 @@ export function registerAdsTools(server: McpServer) {
           impressions: acc.impressions + (s.impressions ?? 0),
           clicks: acc.clicks + (s.clicks ?? 0),
           conversions: acc.conversions + (s.conversions ?? 0),
-          revenue: acc.revenue + (s.revenue ?? 0),
+          roas_sum: acc.roas_sum + (s.roas ?? 0),
         }),
-        { spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0 }
+        { spend: 0, impressions: 0, clicks: 0, conversions: 0, roas_sum: 0 }
       );
 
       const ctr = totals.impressions > 0 ? ((totals.clicks / totals.impressions) * 100).toFixed(2) : 0;
       const cpa = totals.conversions > 0 ? (totals.spend / totals.conversions).toFixed(2) : null;
-      const roas = totals.spend > 0 ? (totals.revenue / totals.spend).toFixed(2) : null;
+      const roas = snapshots.length > 0 ? (totals.roas_sum / snapshots.length).toFixed(2) : null;
       const cpm = totals.impressions > 0 ? ((totals.spend / totals.impressions) * 1000).toFixed(2) : null;
       const cpc = totals.clicks > 0 ? (totals.spend / totals.clicks).toFixed(2) : null;
 
@@ -105,10 +105,10 @@ export function registerAdsTools(server: McpServer) {
                   status: campaign.status,
                   platform: campaign.adAccount.platform,
                   dailyBudget: campaign.dailyBudget,
-                  lifetimeBudget: campaign.lifetimeBudget,
+                  totalBudget: campaign.totalBudget,
                 },
                 date_range,
-                totals: { ...totals, ctr: `${ctr}%`, cpa, roas, cpm, cpc },
+                totals: { spend: totals.spend, impressions: totals.impressions, clicks: totals.clicks, conversions: totals.conversions, ctr: `${ctr}%`, cpa, roas, cpm, cpc },
                 daily_breakdown: snapshots,
               },
               null,
@@ -147,10 +147,10 @@ export function registerAdsTools(server: McpServer) {
 
       const workspace = await db.workspace.findUnique({
         where: { id: workspace_id },
-        select: { agentCanPauseCampaigns: true, agentRequireApprovalAll: true },
+        select: { agentCanPauseCampaigns: true, agentRequireApprovalForAll: true },
       });
 
-      if (!workspace?.agentCanPauseCampaigns || workspace.agentRequireApprovalAll) {
+      if (!workspace?.agentCanPauseCampaigns || workspace.agentRequireApprovalForAll) {
         return {
           content: [
             {
@@ -171,12 +171,12 @@ export function registerAdsTools(server: McpServer) {
       // Log the action
       await db.campaignChangeLog.create({
         data: {
-          campaignId: campaign_id,
-          changeType: "STATUS_CHANGE",
-          oldValue: campaign.status,
-          newValue: "PAUSED",
-          reason,
-          source: "ADAM_AGENT",
+          adCampaignId: campaign_id,
+          action: "status_change",
+          description: reason,
+          source: "adam",
+          beforeState: { status: campaign.status },
+          afterState: { status: "PAUSED" },
         },
       });
 
@@ -222,12 +222,12 @@ export function registerAdsTools(server: McpServer) {
 
       await db.campaignChangeLog.create({
         data: {
-          campaignId: campaign_id,
-          changeType: "STATUS_CHANGE",
-          oldValue: "PAUSED",
-          newValue: "ACTIVE",
-          reason,
-          source: "ADAM_AGENT",
+          adCampaignId: campaign_id,
+          action: "status_change",
+          description: reason,
+          source: "adam",
+          beforeState: { status: "PAUSED" },
+          afterState: { status: "ACTIVE" },
         },
       });
 
@@ -262,11 +262,11 @@ export function registerAdsTools(server: McpServer) {
       const [campaign, workspace] = await Promise.all([
         db.adCampaign.findFirst({
           where: { id: campaign_id, adAccount: { workspaceId: workspace_id } },
-          select: { id: true, name: true, dailyBudget: true, lifetimeBudget: true, status: true },
+          select: { id: true, name: true, dailyBudget: true, totalBudget: true, status: true },
         }),
         db.workspace.findUnique({
           where: { id: workspace_id },
-          select: { agentMaxBudgetChange: true, agentRequireApprovalAll: true },
+          select: { agentMaxBudgetChange: true, agentRequireApprovalForAll: true },
         }),
       ]);
 
@@ -277,7 +277,7 @@ export function registerAdsTools(server: McpServer) {
         };
       }
 
-      if (workspace.agentRequireApprovalAll) {
+      if (workspace.agentRequireApprovalForAll) {
         return {
           content: [{ type: "text", text: "Workspace requires approval for all actions. Use vixy_request_approval." }],
           isError: true,
@@ -285,7 +285,7 @@ export function registerAdsTools(server: McpServer) {
       }
 
       const currentBudget =
-        budget_type === "DAILY" ? (campaign.dailyBudget ?? 0) : (campaign.lifetimeBudget ?? 0);
+        budget_type === "DAILY" ? (campaign.dailyBudget ?? 0) : (campaign.totalBudget ?? 0);
 
       const changePct = currentBudget > 0 ? Math.abs((new_amount - currentBudget) / currentBudget) * 100 : 100;
       const maxAllowed = workspace.agentMaxBudgetChange ?? 20;
@@ -306,18 +306,18 @@ export function registerAdsTools(server: McpServer) {
       await db.adCampaign.update({
         where: { id: campaign_id },
         data: {
-          ...(budget_type === "DAILY" ? { dailyBudget: new_amount } : { lifetimeBudget: new_amount }),
+          ...(budget_type === "DAILY" ? { dailyBudget: new_amount } : { totalBudget: new_amount }),
         },
       });
 
       await db.campaignChangeLog.create({
         data: {
-          campaignId: campaign_id,
-          changeType: "BUDGET_CHANGE",
-          oldValue: String(currentBudget),
-          newValue: String(new_amount),
-          reason,
-          source: "ADAM_AGENT",
+          adCampaignId: campaign_id,
+          action: "budget_change",
+          description: reason,
+          source: "adam",
+          beforeState: { budget_type, amount: currentBudget },
+          afterState: { budget_type, amount: new_amount },
         },
       });
 

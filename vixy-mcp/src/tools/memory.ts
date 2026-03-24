@@ -35,7 +35,7 @@ export function registerMemoryTools(server: McpServer) {
       }
 
       await db.agentMemory.create({
-        data: { workspaceId: workspace_id, key, value, importance, expiresAt },
+        data: { workspaceId: workspace_id, category: "general", key, value, importance, expiresAt },
       });
 
       return {
