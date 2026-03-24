@@ -39,7 +39,7 @@ services:
       context: .
       dockerfile: docker/backend/Dockerfile
     container_name: deer-flow-gateway
-    command: sh -c "uv run --directory /app/backend python3 /debug_gateway.py"
+    command: sh -c "python3 -c \"from http.server import HTTPServer,BaseHTTPRequestHandler; H=type('H',( BaseHTTPRequestHandler,),{'do_GET':lambda s:(s.send_response(200),s.send_header('Content-Type','text/plain'),s.end_headers(),s.wfile.write(b'GATEWAY_TEST_OK')) and None,'log_message':lambda *a:None}); HTTPServer(('0.0.0.0',8001),H).serve_forever()\""
     volumes:
       # Vixy/Adam config overlays
       - ./config.yaml:/app/backend/config.yaml:ro
