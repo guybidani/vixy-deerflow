@@ -16,7 +16,7 @@ export function registerConversationTools(server: McpServer) {
         where: {
           workspaceId: workspace_id,
           unreadCount: { gt: 0 },
-          status: { not: "CLOSED" },
+          status: { not: "ARCHIVED" as const },
         },
         include: {
           lead: {
@@ -59,7 +59,7 @@ export function registerConversationTools(server: McpServer) {
       const conversations = await db.conversation.findMany({
         where: {
           workspaceId: workspace_id,
-          status: { not: "CLOSED" },
+          status: { not: "ARCHIVED" as const },
         },
         include: {
           lead: {
@@ -80,7 +80,8 @@ export function registerConversationTools(server: McpServer) {
       }
 
       // Build bulk analysis prompt
-      const conversationSummaries = conversations.map((conv, i) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const conversationSummaries = (conversations as any[]).map((conv, i) => {
         const messages = [...conv.messages].reverse();
         const transcript = messages.map((m) => `[${m.direction === "INBOUND" ? "Lead" : "Us"}]: ${m.content}`).join("\n");
         return `--- Conversation ${i + 1} ---\nLead: ${conv.lead.name || conv.lead.phone} (${conv.lead.businessName || ""})\nStatus: ${conv.lead.status}\nMessages:\n${transcript}`;

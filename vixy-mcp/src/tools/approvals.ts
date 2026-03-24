@@ -26,7 +26,7 @@ export function registerApprovalTools(server: McpServer) {
         body: JSON.stringify({ workspaceId: workspace_id, actionType: action_type, actionDescription: action_description, actionParameters: action_parameters, urgency }),
       }).catch(() => null);
 
-      const approvalId = response?.ok ? (await response.json().catch(() => ({}))).id ?? "pending" : "pending";
+      const approvalId = response?.ok ? ((await response.json().catch(() => ({}))) as Record<string, unknown>).id ?? "pending" : "pending";
 
       return {
         content: [
