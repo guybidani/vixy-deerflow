@@ -3,7 +3,7 @@
     "vixy": {
       "enabled": true,
       "type": "http",
-      "url": "https://mcp.projectadam.co.il/mcp",
+      "url": "http://vixy-mcp:3005/mcp",
       "headers": {
         "Authorization": "Bearer $VIXY_MCP_API_KEY"
       }

@@ -87,6 +87,28 @@ services:
       - deer-flow
     restart: unless-stopped
 
+  # ── Vixy MCP Server ───────────────────────────────────────────────────────
+  vixy-mcp:
+    build:
+      context: ./vixy-mcp
+      dockerfile: Dockerfile
+    container_name: vixy-mcp
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - MCP_API_KEY=${VIXY_MCP_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - VIXY_APP_URL=${VIXY_APP_URL:-https://vixy.projectadam.co.il}
+      - PORT=3005
+      - NODE_ENV=production
+    networks:
+      - deer-flow
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   deer-flow:
     driver: bridge
