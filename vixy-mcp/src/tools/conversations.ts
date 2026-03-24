@@ -150,7 +150,7 @@ ${conversationSummaries.join("\n\n")}`;
         where: { id: lead_id, workspaceId: workspace_id },
         include: {
           conversations: {
-            orderBy: { updatedAt: "desc" },
+            orderBy: { lastMessageAt: "desc" },
             take: 1,
           },
         },
