@@ -1,0 +1,68 @@
+# DeerFlow configuration for Vixy / Adam agent
+# Model: Claude Sonnet 4.6 via Anthropic API
+
+models:
+  - name: claude-sonnet
+    display_name: "Claude Sonnet 4.6"
+    use: langchain_anthropic:ChatAnthropic
+    model: claude-sonnet-4-6-20250514
+    api_key: $ANTHROPIC_API_KEY
+    max_tokens: 8192
+    supports_vision: true
+    supports_thinking: false
+    temperature: 0.7
+
+  - name: claude-sonnet-thinking
+    display_name: "Claude Sonnet 4.6 (Extended Thinking)"
+    use: langchain_anthropic:ChatAnthropic
+    model: claude-sonnet-4-6-20250514
+    api_key: $ANTHROPIC_API_KEY
+    max_tokens: 16000
+    supports_vision: true
+    supports_thinking: true
+    temperature: 1.0
+    when_thinking_enabled:
+      extra_body:
+        thinking:
+          type: enabled
+          budget_tokens: 8000
+
+default_model: claude-sonnet
+
+# Tools
+tools:
+  - name: web_search
+    group: web
+    use: deerflow.community.tavily.tools:web_search_tool
+    max_results: 5
+
+  - name: web_fetch
+    group: web
+    use: deerflow.community.jina_ai.tools:web_fetch_tool
+
+# Sandbox: local for dev, docker for production
+sandbox:
+  provider: local  # change to "docker" for production
+
+# Memory: long-term per-workspace context
+memory:
+  enabled: true
+  injection_enabled: true
+  debounce_seconds: 30
+  max_facts: 200
+  fact_confidence_threshold: 0.7
+  max_injection_tokens: 3000
+
+# Tool search: defer MCP tool loading until needed (saves context)
+tool_search:
+  enabled: false  # enable when you have many MCP tools
+
+# Checkpointer: SQLite for persistence
+checkpointer:
+  provider: sqlite
+  db_path: .deer-flow/checkpoints.db
+
+# Sub-agents: enable for parallel campaign analysis
+subagents:
+  enabled: true
+  max_concurrent: 3

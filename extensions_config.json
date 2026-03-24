@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "vixy": {
+      "enabled": true,
+      "type": "http",
+      "url": "https://mcp.projectadam.co.il/mcp",
+      "headers": {
+        "Authorization": "Bearer $VIXY_MCP_API_KEY"
+      }
+    }
+  },
+  "skills": {
+    "vixy-patrol": { "enabled": true },
+    "vixy-campaign-analysis": { "enabled": true },
+    "vixy-lead-intelligence": { "enabled": true },
+    "deep-research": { "enabled": true },
+    "data-analysis": { "enabled": true },
+    "find-skills": { "enabled": true }
+  }
+}

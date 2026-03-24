@@ -1,0 +1,92 @@
+# DeerFlow + Adam AI Campaign Manager
+# Builds bytedance/deer-flow from source and overlays Vixy configuration
+# Deploy via Coolify pointing to guybidani/vixy-deerflow
+
+services:
+  # ── Reverse Proxy ──────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "${PORT:-2026}:2026"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - gateway
+      - langgraph
+    networks:
+      - deer-flow
+    restart: unless-stopped
+
+  # ── Frontend: Next.js ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      target: prod
+    container_name: deer-flow-frontend
+    environment:
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+    networks:
+      - deer-flow
+    restart: unless-stopped
+
+  # ── Gateway API ───────────────────────────────────────────────────────────
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: deer-flow-gateway
+    command: sh -c "cd backend && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --workers 2"
+    volumes:
+      # Vixy/Adam config overlays
+      - ./config.yaml:/app/backend/config.yaml:ro
+      - ./extensions_config.json:/app/backend/extensions_config.json:ro
+      - ./skills/custom:/app/skills/custom:ro
+      - ./backend/.deer-flow:/app/backend/.deer-flow
+      # Docker socket for sandbox (DooD)
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - CI=true
+      - DEER_FLOW_HOME=/app/backend/.deer-flow
+      - DEER_FLOW_HOST_BASE_DIR=/app/backend/.deer-flow
+      - DEER_FLOW_SANDBOX_HOST=host.docker.internal
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - deer-flow
+    restart: unless-stopped
+
+  # ── LangGraph Server ───────────────────────────────────────────────────────
+  langgraph:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: deer-flow-langgraph
+    command: sh -c "cd /app/backend && uv run langgraph dev --no-browser --allow-blocking --no-reload --host 0.0.0.0 --port 2024"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./extensions_config.json:/app/extensions_config.json:ro
+      - ./skills/custom:/app/skills/custom:ro
+      - ./backend/.deer-flow:/app/backend/.deer-flow
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - CI=true
+      - DEER_FLOW_HOME=/app/backend/.deer-flow
+      - DEER_FLOW_CONFIG_PATH=/app/config.yaml
+      - DEER_FLOW_EXTENSIONS_CONFIG_PATH=/app/extensions_config.json
+      - DEER_FLOW_SANDBOX_HOST=host.docker.internal
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - deer-flow
+    restart: unless-stopped
+
+networks:
+  deer-flow:
+    driver: bridge
