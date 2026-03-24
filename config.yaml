@@ -1,5 +1,4 @@
-# DeerFlow configuration for Vixy / Adam agent
-# Model: Claude Sonnet 4.6 via Anthropic API
+config_version: 3
 
 models:
   - name: claude-sonnet
@@ -12,24 +11,14 @@ models:
     supports_thinking: false
     temperature: 0.7
 
-  - name: claude-sonnet-thinking
-    display_name: "Claude Sonnet 4.6 (Extended Thinking)"
-    use: langchain_anthropic:ChatAnthropic
-    model: claude-sonnet-4-6-20250514
-    api_key: $ANTHROPIC_API_KEY
-    max_tokens: 16000
-    supports_vision: true
-    supports_thinking: true
-    temperature: 1.0
-    when_thinking_enabled:
-      extra_body:
-        thinking:
-          type: enabled
-          budget_tokens: 8000
-
 default_model: claude-sonnet
 
-# Tools
+tool_groups:
+  - name: web
+  - name: file:read
+  - name: file:write
+  - name: bash
+
 tools:
   - name: web_search
     group: web
@@ -39,30 +28,53 @@ tools:
   - name: web_fetch
     group: web
     use: deerflow.community.jina_ai.tools:web_fetch_tool
+    timeout: 10
 
-# Sandbox: local for dev, docker for production
+  - name: image_search
+    group: web
+    use: deerflow.community.image_search.tools:image_search_tool
+    max_results: 5
+
+  - name: ls
+    group: file:read
+    use: deerflow.sandbox.tools:ls_tool
+
+  - name: read_file
+    group: file:read
+    use: deerflow.sandbox.tools:read_file_tool
+
+  - name: write_file
+    group: file:write
+    use: deerflow.sandbox.tools:write_file_tool
+
+  - name: str_replace
+    group: file:write
+    use: deerflow.sandbox.tools:str_replace_tool
+
+  - name: bash
+    group: bash
+    use: deerflow.sandbox.tools:bash_tool
+
+tool_search:
+  enabled: false
+
 sandbox:
-  provider: local  # change to "docker" for production
+  use: deerflow.sandbox.local:LocalSandboxProvider
 
-# Memory: long-term per-workspace context
 memory:
   enabled: true
-  injection_enabled: true
+  storage_path: memory.json
   debounce_seconds: 30
   max_facts: 200
   fact_confidence_threshold: 0.7
+  injection_enabled: true
   max_injection_tokens: 3000
 
-# Tool search: defer MCP tool loading until needed (saves context)
-tool_search:
-  enabled: false  # enable when you have many MCP tools
-
-# Checkpointer: SQLite for persistence
 checkpointer:
-  provider: sqlite
-  db_path: .deer-flow/checkpoints.db
+  type: sqlite
+  connection_string: checkpoints.db
 
-# Sub-agents: enable for parallel campaign analysis
-subagents:
+title:
   enabled: true
-  max_concurrent: 3
+  max_words: 6
+  max_chars: 60
