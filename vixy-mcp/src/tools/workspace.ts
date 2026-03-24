@@ -13,21 +13,12 @@ export function registerWorkspaceTools(server: McpServer) {
         select: {
           id: true,
           name: true,
-          orgId: true,
+          organizationId: true,
           agentTier: true,
           agentMaxBudgetChange: true,
           agentCanPauseCampaigns: true,
           agentCanCreateCampaigns: true,
           agentRequireApprovalForAll: true,
-          adAccounts: {
-            select: {
-              id: true,
-              platform: true,
-              accountName: true,
-              isActive: true,
-            },
-            where: { isActive: true },
-          },
           workspaceProfile: {
             select: {
               industry: true,
@@ -35,9 +26,6 @@ export function registerWorkspaceTools(server: McpServer) {
               products: true,
             },
           },
-        },
-        where: {
-          adAccounts: { some: { isActive: true } },
         },
         orderBy: { name: "asc" },
       });
@@ -63,22 +51,13 @@ export function registerWorkspaceTools(server: McpServer) {
         db.workspace.findUnique({
           where: { id: workspace_id },
           include: {
-            profile: true,
-            adAccounts: {
-              where: { isActive: true },
-              select: {
-                id: true,
-                platform: true,
-                accountName: true,
-                externalId: true,
-              },
-            },
+            workspaceProfile: true,
           },
         }),
 
         db.adCampaign.findMany({
           where: {
-            adAccount: { workspaceId: workspace_id, isActive: true },
+            workspaceId: workspace_id,
             status: { in: ["ACTIVE", "PAUSED"] },
           },
           select: {
@@ -89,16 +68,14 @@ export function registerWorkspaceTools(server: McpServer) {
             dailyBudget: true,
             totalBudget: true,
             platformId: true,
-            adAccount: { select: { platform: true } },
+            adAccount: { select: { platform: true, accountName: true } },
           },
           take: 20,
         }),
 
         db.adMetricSnapshot.findMany({
           where: {
-            adCampaign: {
-              adAccount: { workspaceId: workspace_id },
-            },
+            adCampaign: { workspaceId: workspace_id },
             snapshotDate: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           },
           select: {
@@ -163,8 +140,8 @@ export function registerWorkspaceTools(server: McpServer) {
                 workspace: {
                   id: workspace.id,
                   name: workspace.name,
+                  organizationId: workspace.organizationId,
                   profile: workspace.workspaceProfile,
-                  adAccounts: workspace.adAccounts,
                   agentPolicy: {
                     tier: workspace.agentTier,
                     maxBudgetChangePct: workspace.agentMaxBudgetChange,

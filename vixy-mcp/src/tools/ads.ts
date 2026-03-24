@@ -15,11 +15,8 @@ export function registerAdsTools(server: McpServer) {
     async ({ workspace_id, platform, status }) => {
       const campaigns = await db.adCampaign.findMany({
         where: {
-          adAccount: {
-            workspaceId: workspace_id,
-            isActive: true,
-            ...(platform !== "ALL" ? { platform } : {}),
-          },
+          workspaceId: workspace_id,
+          ...(platform !== "ALL" ? { adAccount: { platform } } : {}),
           ...(status !== "ALL" ? { status } : {}),
         },
         include: {
@@ -133,9 +130,9 @@ export function registerAdsTools(server: McpServer) {
       const campaign = await db.adCampaign.findFirst({
         where: {
           id: campaign_id,
-          adAccount: { workspaceId: workspace_id },
+          workspaceId: workspace_id,
         },
-        include: { adAccount: { select: { platform: true, workspaceId: true } } },
+        include: { adAccount: { select: { platform: true } } },
       });
 
       if (!campaign) {
@@ -208,7 +205,7 @@ export function registerAdsTools(server: McpServer) {
     },
     async ({ campaign_id, workspace_id, reason }) => {
       const campaign = await db.adCampaign.findFirst({
-        where: { id: campaign_id, adAccount: { workspaceId: workspace_id } },
+        where: { id: campaign_id, workspaceId: workspace_id },
       });
 
       if (!campaign) {
@@ -261,7 +258,7 @@ export function registerAdsTools(server: McpServer) {
     async ({ campaign_id, workspace_id, budget_type, new_amount, reason }) => {
       const [campaign, workspace] = await Promise.all([
         db.adCampaign.findFirst({
-          where: { id: campaign_id, adAccount: { workspaceId: workspace_id } },
+          where: { id: campaign_id, workspaceId: workspace_id },
           select: { id: true, name: true, dailyBudget: true, totalBudget: true, status: true },
         }),
         db.workspace.findUnique({

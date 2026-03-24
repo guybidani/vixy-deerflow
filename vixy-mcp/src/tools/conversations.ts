@@ -118,12 +118,15 @@ ${conversationSummaries.join("\n\n")}`;
       }
 
       // Enrich with actual lead IDs
-      const enriched = (analysis as Record<string, unknown>[]).map((a) => ({
-        ...a,
-        lead_id: conversations[a.conversation_index as number]?.lead.id,
-        lead_name: conversations[a.conversation_index as number]?.lead.name,
-        conversation_id: conversations[a.conversation_index as number]?.id,
-      }));
+      const enriched = (analysis as Record<string, unknown>[]).map((a) => {
+        const conv = conversations[a.conversation_index as number];
+        return {
+          ...a,
+          lead_id: conv?.lead?.id,
+          lead_name: conv?.lead?.name,
+          conversation_id: conv?.id,
+        };
+      });
 
       return {
         content: [{ type: "text", text: JSON.stringify(enriched, null, 2) }],
