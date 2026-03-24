@@ -1,22 +1,30 @@
-# DeerFlow Frontend (Next.js) — single-stage build
+# DeerFlow Frontend — mirrors bytedance/deer-flow official Dockerfile
+# but clones source during build (no local copy needed)
+ARG PNPM_STORE_PATH=/root/.local/share/pnpm/store
 ARG DEER_FLOW_REF=main
 
-FROM node:22-alpine AS prod
+# ── Base: clone + pnpm setup ──────────────────────────────────────────────────
+FROM node:22-alpine AS base
+ARG PNPM_STORE_PATH
 ARG DEER_FLOW_REF
-
 RUN apk add --no-cache git
-RUN npm install -g pnpm@10.26.2
-
+RUN corepack enable && corepack install -g pnpm@10.26.2
+RUN pnpm config set store-dir ${PNPM_STORE_PATH}
 RUN git clone --depth=1 --branch ${DEER_FLOW_REF} \
     https://github.com/bytedance/deer-flow.git /app
 
-WORKDIR /app/frontend
-RUN pnpm install --frozen-lockfile
-
+# ── Builder: install + compile ────────────────────────────────────────────────
+FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_OPTIONS="--max-old-space-size=1536"
-RUN SKIP_ENV_VALIDATION=1 pnpm build
+RUN cd /app/frontend && pnpm install --frozen-lockfile
+RUN cd /app/frontend && SKIP_ENV_VALIDATION=1 pnpm build
 
+# ── Prod: minimal runtime ─────────────────────────────────────────────────────
+FROM node:22-alpine AS prod
+ARG PNPM_STORE_PATH
+RUN corepack enable && corepack install -g pnpm@10.26.2
+RUN pnpm config set store-dir ${PNPM_STORE_PATH}
+WORKDIR /app
+COPY --from=builder /app/frontend ./frontend
 EXPOSE 3000
-ENV NODE_ENV=production
-CMD ["pnpm", "start"]
+CMD ["sh", "-c", "cd /app/frontend && pnpm start"]

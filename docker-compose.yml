@@ -18,9 +18,12 @@ services:
       - deer-flow
     restart: unless-stopped
 
-  # ── Frontend: Next.js (pre-built via GitHub Actions → GHCR) ───────────────
+  # ── Frontend: Next.js ─────────────────────────────────────────────────────
   frontend:
-    image: ghcr.io/guybidani/vixy-deerflow-frontend:latest
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      target: prod
     container_name: deer-flow-frontend
     environment:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
