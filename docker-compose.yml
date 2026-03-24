@@ -9,7 +9,7 @@ services:
       context: ./docker/nginx
       dockerfile: Dockerfile
     ports:
-      - "${PORT:-2026}:2026"
+      - "${PORT:-80}:80"
     depends_on:
       - frontend
       - gateway
