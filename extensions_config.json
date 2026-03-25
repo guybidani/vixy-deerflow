@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "vixy": {
-      "enabled": false,
+      "enabled": true,
       "type": "http",
       "url": "http://vixy-mcp:3005/mcp",
       "headers": {
