@@ -32,6 +32,12 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     sh -c "cd backend && uv sync"
 
+# Overlay Vixy/Adam config files (from build context = repo root)
+COPY config.yaml /app/backend/config.yaml
+COPY extensions_config.json /app/backend/extensions_config.json
+COPY skills/custom /app/skills/custom
+COPY backend/.deer-flow /app/backend/.deer-flow
+
 EXPOSE 8001 2024
 
 CMD ["sh", "-c", "cd backend && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --workers 2"]
