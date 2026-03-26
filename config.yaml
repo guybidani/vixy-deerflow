@@ -1,17 +1,17 @@
 config_version: 3
 
 models:
-  - name: claude-sonnet
-    display_name: "Claude Sonnet 4.6"
-    use: langchain_anthropic:ChatAnthropic
-    model: claude-sonnet-4-6-20250514
-    api_key: $ANTHROPIC_API_KEY
+  - name: gpt-4.5
+    display_name: "GPT-4.5 Preview"
+    use: langchain_openai:ChatOpenAI
+    model: gpt-4.5-preview
+    api_key: $OPENAI_API_KEY
     max_tokens: 8192
     supports_vision: true
     supports_thinking: false
     temperature: 0.7
 
-default_model: claude-sonnet
+default_model: gpt-4.5
 
 tool_groups:
   - name: web
