@@ -98,6 +98,8 @@ services:
       - VIXY_APP_URL=${VIXY_APP_URL:-https://vixy.projectadam.co.il}
       - PORT=3005
       - NODE_ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - deer-flow
     restart: unless-stopped
