@@ -1,6 +1,6 @@
 name: adam
 description: "Adam - Autonomous AI campaign manager for Vixy. Manages Meta Ads and Google Ads, analyzes WhatsApp conversations, and executes performance marketing tasks."
-model: claude-sonnet
+model: gpt-5.4
 
 # Adam has access to all tool groups
 tool_groups:
