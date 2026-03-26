@@ -1,11 +1,11 @@
 {
-  "mcpServers": {
+  "mcp_servers": {
     "vixy": {
       "enabled": true,
       "type": "http",
       "url": "http://vixy-mcp:3005/mcp",
       "headers": {
-        "Authorization": "Bearer $VIXY_MCP_API_KEY"
+        "Authorization": "Bearer 1f422d1250e9148eeb512c7313f0b3c1b18c0d4cbd4ab07e7009b426ed8dca7b"
       }
     }
   },
