@@ -102,6 +102,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow
+      - coolify
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
@@ -112,3 +113,5 @@ services:
 networks:
   deer-flow:
     driver: bridge
+  coolify:
+    external: true
